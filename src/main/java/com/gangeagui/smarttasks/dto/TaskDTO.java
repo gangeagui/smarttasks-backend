@@ -1,44 +1,27 @@
-package com.gangeagui.smarttasks.model;
+package com.gangeagui.smarttasks.dto;
 
-import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-@Entity
-public class Task {
+public class TaskDTO {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @NotBlank(message = "El título es obligatorio")
-    @Size(min = 3, max = 100, message = "El título debe tener entre 3 y 100 caracteres")
+    @Size(min = 3, max = 100)
     private String title;
 
-    @Size(max = 500, message = "La descripción no debe exceder 500 caracteres")
     private String description;
 
-    @NotBlank(message = "EL estado es obligatorio (ToDo, InProgress, Done)")
+    @NotBlank(message = "El estado es obligatorio")
     private String status;
 
-    @ManyToOne
-    @JoinColumn(name = "board_id")
     @NotNull(message = "Debe asignar esta tarea a un tablero")
-    private Board board;
+    private Long boardId;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id")
     @NotNull(message = "Debe asignar esta tarea a un usuario")
-    private User assignedTo;
-
-    public Task() {}
-
-    public Task(String title, String description, String status) {
-        this.title = title;
-        this.description = description;
-        this.status = status;
-    }
+    private Long assignedToId;
 
     public Long getId() {
         return id;
@@ -72,19 +55,19 @@ public class Task {
         this.status = status;
     }
 
-    public Board getBoard() {
-        return board;
+    public Long getBoardId() {
+        return boardId;
     }
 
-    public void setBoard(Board board) {
-        this.board = board;
+    public void setBoardId(Long boardId) {
+        this.boardId = boardId;
     }
 
-    public User getAssignedTo() {
-        return assignedTo;
+    public Long getAssignedToId() {
+        return assignedToId;
     }
 
-    public void setAssignedTo(User assignedTo) {
-        this.assignedTo = assignedTo;
+    public void setAssignedToId(Long assignedToId) {
+        this.assignedToId = assignedToId;
     }
 }

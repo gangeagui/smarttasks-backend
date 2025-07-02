@@ -1,9 +1,16 @@
 package com.gangeagui.smarttasks.controller;
 
+import com.gangeagui.smarttasks.dto.TaskDTO;
 import com.gangeagui.smarttasks.model.Task;
+import com.gangeagui.smarttasks.model.Board;
+import com.gangeagui.smarttasks.model.User;
+import com.gangeagui.smarttasks.repository.BoardRepository;
 import com.gangeagui.smarttasks.repository.TaskRepository;
+import com.gangeagui.smarttasks.repository.UserRepository;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -15,13 +22,52 @@ public class TaskController {
     @Autowired
     private TaskRepository taskRepository;
 
+    @Autowired
+    private BoardRepository boardRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
     @GetMapping
-    public List<Task> getAllTasks() {
-        return taskRepository.findAll();
+    public List<TaskDTO> getAllTasks() {
+        return taskRepository.findAll().stream().map(Task -> {
+            TaskDTO dto = new TaskDTO();
+            dto.setId(Task.getId());
+            dto.setTitle(Task.getTitle());
+            dto.setDescription(Task.getDescription());
+            dto.setStatus(Task.getStatus());
+            dto.setBoardId(Task.getBoard().getId());
+            dto.setAssignedToId(Task.getAssignedTo().getId());
+            return dto;
+        }).toList();
     }
 
     @PostMapping
-    public Task createTask(@RequestBody @Valid Task task) {
-        return taskRepository.save(task);
+    public ResponseEntity<TaskDTO> createTask(@RequestBody @Valid TaskDTO taskDTO) {
+
+        Board board = boardRepository.findById(taskDTO.getBoardId())
+                .orElseThrow(() -> new RuntimeException("Tablero no encontrado"));
+
+        User user = userRepository.findById(taskDTO.getAssignedToId())
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        Task task = new Task();
+        task.setTitle(taskDTO.getTitle());
+        task.setDescription(taskDTO.getDescription());
+        task.setStatus(taskDTO.getStatus());
+        task.setBoard(board);
+        task.setAssignedTo(user);
+
+        Task savedTask = taskRepository.save(task);
+
+        TaskDTO responseDto = new TaskDTO();
+        responseDto.setId(savedTask.getId());
+        responseDto.setTitle(savedTask.getTitle());
+        responseDto.setDescription(savedTask.getDescription());
+        responseDto.setStatus(savedTask.getStatus());
+        responseDto.setBoardId(board.getId());
+        responseDto.setAssignedToId(user.getId());
+
+        return new ResponseEntity<>(responseDto, HttpStatus.CREATED);
     }
 }
