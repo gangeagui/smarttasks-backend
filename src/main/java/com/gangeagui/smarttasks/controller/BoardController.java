@@ -1,6 +1,7 @@
 package com.gangeagui.smarttasks.controller;
 
 import com.gangeagui.smarttasks.dto.BoardDTO;
+import com.gangeagui.smarttasks.exception.ResourceNotFoundException;
 import com.gangeagui.smarttasks.model.Board;
 import com.gangeagui.smarttasks.repository.BoardRepository;
 import jakarta.validation.Valid;
@@ -20,10 +21,10 @@ public class BoardController {
 
     @GetMapping
     public List<BoardDTO> getAllBoards() {
-        return boardRepository.findAll().stream().map(Board -> {
+        return boardRepository.findAll().stream().map(board -> {
             BoardDTO dto =  new BoardDTO();
-            dto.setId(Board.getId());
-            dto.setName(Board.getName());
+            dto.setId(board.getId());
+            dto.setName(board.getName());
             return dto;
         }).toList();
     }
@@ -40,5 +41,34 @@ public class BoardController {
         responseDto.setName(savedBoard.getName());
 
         return new ResponseEntity<>(responseDto, HttpStatus.CREATED);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<BoardDTO> updateBoard(@PathVariable Long id, @RequestBody @Valid BoardDTO boardDTO) {
+        Board board = boardRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Tablero no encontrado"));
+
+        board.setName(boardDTO.getName());
+        Board updatedBoard = boardRepository.save(board);
+
+        BoardDTO responseDto = new BoardDTO();
+        responseDto.setId(updatedBoard.getId());
+        responseDto.setName(updatedBoard.getName());
+
+        return ResponseEntity.ok(responseDto);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<BoardDTO> deleteBoard(@PathVariable Long id) {
+        Board board = boardRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Tablero no encontrado"));
+
+        boardRepository.delete(board);
+
+        BoardDTO dto = new BoardDTO();
+        dto.setId(board.getId());
+        dto.setName(board.getName());
+
+        return ResponseEntity.ok(dto);
     }
 }

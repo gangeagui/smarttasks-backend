@@ -2,9 +2,11 @@ package com.gangeagui.smarttasks.controller;
 
 import com.gangeagui.smarttasks.dto.AuthRequest;
 import com.gangeagui.smarttasks.dto.AuthResponse;
+import com.gangeagui.smarttasks.exception.ResourceNotFoundException;
 import com.gangeagui.smarttasks.model.User;
 import com.gangeagui.smarttasks.repository.UserRepository;
 import com.gangeagui.smarttasks.security.JwtService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -24,12 +26,12 @@ public class AuthController {
     private JwtService jwtService;
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody AuthRequest request) {
+    public ResponseEntity<AuthResponse> login(@RequestBody @Valid AuthRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            return ResponseEntity.badRequest().body("Contraseña incorrecta");
+            throw new IllegalArgumentException("Contraseña incorrecta");
         }
 
         String token = jwtService.generateToken(user.getUsername());
