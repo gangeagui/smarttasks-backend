@@ -1,6 +1,7 @@
 package com.gangeagui.smarttasks.controller;
 
 import com.gangeagui.smarttasks.dto.UserDTO;
+import com.gangeagui.smarttasks.exception.ResourceNotFoundException;
 import com.gangeagui.smarttasks.model.User;
 import com.gangeagui.smarttasks.repository.UserRepository;
 import jakarta.validation.Valid;
@@ -50,5 +51,41 @@ public class UserController {
         responseDto.setEmail(savedUser.getEmail());
 
         return new ResponseEntity<>(responseDto, HttpStatus.CREATED);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<UserDTO> updateUser(@PathVariable Long id, @RequestBody @Valid UserDTO userDTO) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
+
+        user.setUsername(userDTO.getUsername());
+        user.setEmail(userDTO.getEmail());
+        if (userDTO.getPassword() != null && !userDTO.getPassword().isBlank()) {
+            user.setPassword(passwordEncoder.encode(userDTO.getPassword()));
+        }
+
+        User updatedUser = userRepository.save(user);
+
+        UserDTO responseDto = new UserDTO();
+        responseDto.setId(updatedUser.getId());
+        responseDto.setUsername(updatedUser.getUsername());
+        responseDto.setEmail(updatedUser.getEmail());
+
+        return ResponseEntity.ok(responseDto);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<UserDTO> deleteUser(@PathVariable Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
+
+        userRepository.delete(user);
+
+        UserDTO dto = new UserDTO();
+        dto.setId(user.getId());
+        dto.setUsername(user.getUsername());
+        dto.setEmail(user.getEmail());
+
+        return ResponseEntity.ok(dto);
     }
 }
