@@ -34,7 +34,7 @@ public class AuthController {
             throw new IllegalArgumentException("Contraseña incorrecta");
         }
 
-        String token = jwtService.generateToken(user.getUsername());
+        String token = jwtService.generateToken(user);
         return ResponseEntity.ok(new AuthResponse(token));
     }
 }
