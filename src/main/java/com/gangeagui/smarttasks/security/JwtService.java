@@ -31,7 +31,7 @@ public class JwtService {
         return Keys.hmacShaKeyFor(secretKey.getBytes());
     }
 
-    public String extractUsername(String token) {
+    public String extractSubject(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(getKey())
                 .build()
@@ -40,8 +40,17 @@ public class JwtService {
                 .getSubject();
     }
 
+    public String extractUsernameClaim(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(getKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .get("username", String.class);
+    }
+
     public boolean isTokenValid(String token, String username) {
-        String extractedUsername = extractUsername(token);
+        String extractedUsername = extractUsernameClaim(token);
         return (extractedUsername.equals(username));
     }
 }

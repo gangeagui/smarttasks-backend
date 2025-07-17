@@ -45,14 +45,30 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
 
         final String token = authHeader.substring(7);
-        final String username = jwtService.extractUsername(token);
+        final String userIdString = jwtService.extractSubject(token);
 
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            var user = userRepository.findByUsername(username).orElse(null);
+        if (userIdString != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            Long userId;
+            try {
+                userId = Long.parseLong(userIdString);
+            } catch (NumberFormatException e) {
+                filterChain.doFilter(request, response);
+                return;
+            }
 
-            if (user != null && jwtService.isTokenValid(token, username)) {
+            var user = userRepository.findById(userId).orElse(null);
+
+            if (user != null && jwtService.isTokenValid(token, user.getUsername())) {
+                UserDetails userDetails = org.springframework.security.core.userdetails.User
+                        .withUsername(user.getUsername())
+                        .password(user.getPassword())
+                        .authorities("ROLE_USER") // si tienes roles dinámicos, cámbialo aquí
+                        .build();
+
                 var authToken = new UsernamePasswordAuthenticationToken(
-                        user, null, null // ← puedes agregar roles si los usas
+                        userDetails,
+                        null,
+                        userDetails.getAuthorities()
                 );
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
