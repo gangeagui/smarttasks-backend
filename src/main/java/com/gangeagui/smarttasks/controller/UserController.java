@@ -43,6 +43,7 @@ public class UserController {
         String encodedPassword = passwordEncoder.encode(userDTO.getPassword());
         user.setPassword(encodedPassword);
 
+        user.setRole("ROLE_USER");
         User savedUser = userRepository.save(user);
 
         UserDTO responseDto = new UserDTO();
