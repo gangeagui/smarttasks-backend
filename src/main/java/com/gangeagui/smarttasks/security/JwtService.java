@@ -12,7 +12,7 @@ import java.util.Date;
 @Service
 public class JwtService {
 
-    private final String secretKey = "clave-super-secreta-para-smarttasks123456789";
+    private final String secretKey = "clave-super-secreta-para-smart_tasks123456789";
     private final long expirationMs = 3600000;
 
     public String generateToken(User user) {
@@ -21,6 +21,7 @@ public class JwtService {
                 .claim("id", user.getId())
                 .claim("email", user.getEmail())
                 .claim("username", user.getUsername())
+                .claim("role", user.getRole())
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expirationMs))
                 .signWith(getKey(), SignatureAlgorithm.HS256)
