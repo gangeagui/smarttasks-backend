@@ -32,15 +32,20 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
 
         String path = request.getRequestURI();
-        if (path.startsWith("/api/auth")) {
-            filterChain.doFilter(request, response);    // ⬅ permite el login sin token
+        String method = request.getMethod();
+
+        boolean isPublicPath = path.startsWith("/api/auth") ||
+                (path.equals("/api/users") && method.equals("POST"));
+
+        if (isPublicPath) {
+            filterChain.doFilter(request, response);
             return;
         }
 
         final String authHeader = request.getHeader("Authorization");
 
         if (!StringUtils.hasText(authHeader) || !authHeader.startsWith("Bearer ")) {
-            filterChain.doFilter(request, response);    // ⬅ permite otras rutas públicas también
+            filterChain.doFilter(request, response);
             return;
         }
 
@@ -62,7 +67,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 UserDetails userDetails = org.springframework.security.core.userdetails.User
                         .withUsername(user.getUsername())
                         .password(user.getPassword())
-                        .authorities("ROLE_USER") // si tienes roles dinámicos, cámbialo aquí
+                        .authorities(user.getRole())
                         .build();
 
                 var authToken = new UsernamePasswordAuthenticationToken(
