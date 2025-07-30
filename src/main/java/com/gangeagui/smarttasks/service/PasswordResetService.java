@@ -1,11 +1,13 @@
 package com.gangeagui.smarttasks.service;
 
+import com.gangeagui.smarttasks.exception.ResourceNotFoundException;
 import com.gangeagui.smarttasks.model.PasswordResetToken;
 import com.gangeagui.smarttasks.model.User;
 import com.gangeagui.smarttasks.repository.PasswordResetTokenRepository;
 import com.gangeagui.smarttasks.repository.UserRepository;
 import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -15,53 +17,69 @@ import java.util.UUID;
 @Service
 public class PasswordResetService {
 
-    @Autowired
-    private PasswordResetTokenRepository tokenRepository;
+    private final UserRepository userRepository;
+    private final PasswordResetTokenRepository tokenRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
 
-    @Autowired
-    private UserRepository userRepository;
+    @Value("${app.frontend.reset-password-url}")
+    private String resetPasswordUrl;
 
-    @Autowired
-    private EmailService emailService;
-
-    private final long EXPIRATION_MINUTES = 30;
+    public PasswordResetService(UserRepository userRepository,
+                                PasswordResetTokenRepository tokenRepository,
+                                PasswordEncoder passwordEncoder,
+                                EmailService emailService) {
+        this.userRepository = userRepository;
+        this.tokenRepository = tokenRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.emailService = emailService;
+    }
 
     @Transactional
-    public void sendPasswordResetToken(String email) {
-        Optional<User> optionalUser = userRepository.findByEmail(email);
-        if (optionalUser.isEmpty()) {
-            throw new RuntimeException("Usuario no encontrado con el email: " + email);
-        }
-
-        User user = optionalUser.get();
+    public void sendResetToken(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("No se encontró ningún usuario con ese correo."));
 
         tokenRepository.deleteByUser(user);
 
         String token = UUID.randomUUID().toString();
-        LocalDateTime expiration = LocalDateTime.now().plusMinutes(EXPIRATION_MINUTES);
+        LocalDateTime expiration = LocalDateTime.now().plusMinutes(30);
 
-        PasswordResetToken resetToken = new PasswordResetToken(token, expiration, user);
+        PasswordResetToken resetToken = new PasswordResetToken();
+        resetToken.setUser(user);
+        resetToken.setToken(token);
+        resetToken.setExpiration(expiration);
         tokenRepository.save(resetToken);
 
-        String link = "http://localhost:5173/reset-password?token=" + token;
+        String fullUrl = resetPasswordUrl + "?token=" + token;
 
-        String message = "Haz clic en el siguiente enlace para restablecer tu contraseña:\n\n" + link;
+        String subject = "Restablece tu contraseña";
+        String content = "Hola " + user.getName() + ",\n\n"
+                + "Haz clic en el siguiente enlace para restablecer tu contraseña:\n"
+                + fullUrl + "\n\n"
+                + "Este enlace expirará en 30 minutos.\n\n"
+                + "Si no solicitaste esto, puedes ignorar este mensaje.";
 
-        emailService.sendEmail(email, "Recuperación de contraseña", message);
+        emailService.sendEmail(user.getEmail(), subject, content);
     }
 
-    public boolean isValidToken(String token) {
-        Optional<PasswordResetToken> result = tokenRepository.findByToken(token);
-        return result.isPresent() && result.get().getExpiration().isAfter(LocalDateTime.now());
-    }
+    public void resetPassword(String token, String newPassword) {
+        Optional<PasswordResetToken> optionalToken = tokenRepository.findByToken(token);
 
-    public String getEmailByToken(String token) {
-        return tokenRepository.findByToken(token)
-                .map(t -> t.getUser().getEmail())
-                .orElse(null);
-    }
+        if (optionalToken.isEmpty()) {
+            throw new IllegalArgumentException("Token inválido.");
+        }
 
-    public void invalidateToken(String token) {
-        tokenRepository.findByToken(token).ifPresent(tokenRepository::delete);
+        PasswordResetToken resetToken = optionalToken.get();
+
+        if (resetToken.getExpiration().isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("El token ha expirado.");
+        }
+
+        User user = resetToken.getUser();
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+
+        tokenRepository.delete(resetToken);
     }
 }
