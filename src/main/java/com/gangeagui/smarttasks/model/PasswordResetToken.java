@@ -14,28 +14,15 @@ public class PasswordResetToken {
     @Column(nullable = false, unique = true)
     private String token;
 
+    @OneToOne
+    @JoinColumn(name = "user_id", referencedColumnName = "id", unique = true)
+    private User user;
+
     @Column(nullable = false)
     private LocalDateTime expiration;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
-
-    public PasswordResetToken() {
-    }
-
-    public PasswordResetToken(String token, LocalDateTime expiration, User user) {
-        this.token = token;
-        this.expiration = expiration;
-        this.user = user;
-    }
-
     public Long getId() {
         return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
     }
 
     public String getToken() {
@@ -46,19 +33,19 @@ public class PasswordResetToken {
         this.token = token;
     }
 
-    public LocalDateTime getExpiration() {
-        return expiration;
-    }
-
-    public void setExpiration(LocalDateTime expiration) {
-        this.expiration = expiration;
-    }
-
     public User getUser() {
         return user;
     }
 
     public void setUser(User user) {
         this.user = user;
+    }
+
+    public LocalDateTime getExpiration() {
+        return expiration;
+    }
+
+    public void setExpiration(LocalDateTime expiration) {
+        this.expiration = expiration;
     }
 }
