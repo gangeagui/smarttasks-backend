@@ -31,3 +31,15 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Archivos sensibles (credenciales, tokens, configuraciones locales)
+.env
+.env.*
+*.properties~
+*.secret
+*.credentials
+
+# Archivos temporales de editores
+*~
+*.swp
+*.swo
